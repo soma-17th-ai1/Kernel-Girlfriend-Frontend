@@ -87,8 +87,10 @@ monogatari.characters ({
 	}
 });
 
+
 monogatari.translation ('English', {
-	'보내기': '보내기'
+	'보내기': '보내기',
+	'↑': '↑'
 });
 
 const LLM_PROXY_ENDPOINT = 'http://127.0.0.1:8000/generate';
@@ -168,13 +170,13 @@ monogatari.script ({
 	'LLMChat': [
 		{
 			'Input': {
-				'Text': '소마에게 어떤 말을 걸까?',
+				'Text': '',
 				'Type': 'textarea',
 				'Class': 'llm-input',
 				'Attributes': {
-					'rows': '6',
-					'maxlength': '500',
-					'placeholder': '하고 싶은 말을 입력하세요.'
+					'rows': '1',
+					'maxlength': '300',
+					'placeholder': '하고 싶은 말을 입력하세요...'
 				},
 				'Validation': function (input) {
 					return input.trim ().length > 0;
@@ -211,7 +213,7 @@ monogatari.script ({
 						this.storage ({
 							llm: {
 								prompt: escapeDialogText (prompt),
-								response: '지금은 연결이 좀 불안정한 것 같아. 잠시 후에 다시 말을 걸어줄래?'
+								response: '지금은 연결이 좀 불안정한 것 같아요. 잠시 후에 다시 말을 걸어주실래요?'
 							}
 						});
 					});
@@ -227,7 +229,7 @@ monogatari.script ({
 					});
 				},
 				'Warning': '한 글자 이상 입력해야 해요.',
-				'actionString': '보내기'
+				'actionString': '↑'
 			}
 		},
 		'p {{llm.prompt}}',
@@ -259,4 +261,17 @@ monogatari.script ({
 		'y 좋아요. 다음에 또 이야기해요, {{player.name}}씨.',
 		'end'
 	]
+});
+
+// 전역 이벤트 리스너 추가: 엔터키 전송
+document.addEventListener('keydown', function (e) {
+	// Shift를 누르지 않은 그냥 Enter 일 때만 전송
+	if (e.target.matches('.llm-input textarea') && e.key === 'Enter' && !e.shiftKey) {
+		e.preventDefault();
+		const form = e.target.closest('text-input');
+		if (form) {
+			const btn = form.querySelector('button');
+			if (btn) btn.click();
+		}
+	}
 });
