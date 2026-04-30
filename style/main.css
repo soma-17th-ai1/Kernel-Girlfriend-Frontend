@@ -1,0 +1,612 @@
+/**
+ * =============================================================================
+ * This is the file where all your styling should go in.
+ * Instead of modifying the styles found in the monogatari.css file or others,
+ * you should overwrite those styles in this file.
+ *
+ * The CSS selectors shown are not an extensive list but they are the most
+ * common you might want to change. To find what other elements are available,
+ * you can take a look at the monogatari.css file or use your browser's dev
+ * tools to inspect the elements.
+ * =============================================================================
+**/
+
+/**
+ * ===========================
+ * General Styling
+ * ===========================
+**/
+
+/* General Style */
+body {
+
+}
+
+/* Simple Button styles*/
+button {
+
+}
+
+/* Simple Button Style on Hover */
+button:hover {
+
+}
+
+/* General Styling for Menu Screens */
+[data-screen] {
+
+}
+
+/**
+ * ===========================
+ * Main Menu Styling
+ * ===========================
+**/
+
+/* Main Menu Styling */
+[data-screen="main"] {
+	--soma-pink: #f26a9a;
+	--soma-rose: #ffe1ec;
+	--soma-ink: #2d2431;
+	--soma-mint: #7fd8ce;
+	--soma-gold: #ffd36a;
+	position: relative;
+	overflow: hidden;
+	justify-content: center;
+	background:
+		radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.88) 0 2px, transparent 3px 100%),
+		radial-gradient(circle at 78% 26%, rgba(255, 211, 106, 0.65) 0 2px, transparent 3px 100%),
+		linear-gradient(110deg, rgba(255, 244, 249, 0.96) 0%, rgba(255, 244, 249, 0.78) 34%, rgba(255, 255, 255, 0.12) 64%),
+		linear-gradient(180deg, rgba(255, 130, 172, 0.18), rgba(127, 216, 206, 0.15)),
+		url("../assets/scenes/entrance.png");
+	background-position: center;
+	background-size: 6rem 6rem, 9rem 9rem, cover, cover, cover;
+	color: var(--soma-ink);
+	isolation: isolate;
+}
+
+[data-screen="main"]::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	background:
+		linear-gradient(90deg, rgba(255, 248, 252, 0.98) 0%, rgba(255, 248, 252, 0.78) 42%, rgba(255, 248, 252, 0.08) 100%),
+		radial-gradient(circle at 70% 62%, rgba(255, 214, 229, 0.78), transparent 32%),
+		radial-gradient(circle at 88% 16%, rgba(127, 216, 206, 0.5), transparent 24%);
+}
+
+[data-screen="main"]::after {
+	content: "";
+	position: absolute;
+	right: clamp(0.5rem, 7vw, 7rem);
+	bottom: clamp(-1rem, -2vw, 0rem);
+	z-index: 1;
+	width: min(38vw, 29rem);
+	min-width: 16rem;
+	aspect-ratio: 2 / 3;
+	background:
+		linear-gradient(180deg, transparent 72%, rgba(255, 255, 255, 0.5)),
+		url("../assets/characters/soma/normal.png");
+	background-position: center bottom;
+	background-repeat: no-repeat;
+	background-size: contain;
+	filter: drop-shadow(0 2rem 2rem rgba(64, 35, 47, 0.28));
+	animation: somaFloat 4.5s ease-in-out infinite;
+}
+
+main-screen::before {
+	display: none;
+}
+
+main-screen::after {
+	display: none;
+}
+
+[data-ui="main-brand"] {
+	position: fixed;
+	top: clamp(1.4rem, 8vh, 4.8rem);
+	left: clamp(1.2rem, 6vw, 6rem);
+	z-index: 4;
+	display: flex;
+	width: min(56rem, calc(100vw - clamp(2.4rem, 12vw, 12rem)));
+	flex-direction: column;
+	align-items: flex-start;
+	gap: clamp(0.7rem, 1.6vh, 1.1rem);
+	pointer-events: none;
+	text-align: left;
+}
+
+[data-ui="main-kicker"] {
+	padding-left: 0.6rem;
+	border-left: 0.22rem solid var(--soma-pink);
+	color: rgba(45, 36, 49, 0.62);
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: clamp(0.75rem, 1.4vw, 1rem);
+	font-weight: 700;
+	letter-spacing: 0.34rem;
+	line-height: 1;
+	text-shadow: 0 0.1rem 0.9rem rgba(255, 255, 255, 0.9);
+}
+
+[data-ui="main-title"] {
+	display: block;
+	max-width: 100%;
+	color: #ffffff;
+	font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+	font-size: clamp(3rem, 7.2vw, 6.8rem);
+	font-weight: 900;
+	line-height: 1.05;
+	white-space: nowrap;
+	text-shadow:
+		0 0.08em 0 rgba(242, 106, 154, 0.82),
+		0 0.16em 1.7rem rgba(126, 52, 84, 0.24);
+}
+
+main-menu::before {
+	display: none;
+}
+
+main-menu::after {
+	display: none;
+}
+
+/* Main Menu Buttons Styling */
+[data-screen="main"] button {
+	position: relative;
+	width: clamp(11rem, 22vw, 15rem);
+	height: 3.3rem;
+	margin: 0.35rem clamp(1.2rem, 5vw, 4rem) 0.35rem 0;
+	border: 1px solid rgba(255, 255, 255, 0.72);
+	border-radius: 999px;
+	background:
+		linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(255, 238, 246, 0.86)),
+		linear-gradient(135deg, rgba(242, 106, 154, 0.22), rgba(127, 216, 206, 0.18));
+	box-shadow:
+		0 0.9rem 2rem rgba(97, 51, 71, 0.14),
+		inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+	color: #5b3546;
+	font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+	font-size: 1rem;
+	font-weight: 800;
+	letter-spacing: 0;
+	text-align: left;
+	text-indent: 1.55rem;
+	transition:
+		transform 180ms ease,
+		box-shadow 180ms ease,
+		background 180ms ease,
+		color 180ms ease;
+	backdrop-filter: blur(12px);
+}
+
+[data-screen="main"] button::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 0.72rem;
+	width: 0.45rem;
+	height: 0.45rem;
+	border-radius: 50%;
+	background: var(--soma-pink);
+	box-shadow:
+		0 0 0 0.32rem rgba(242, 106, 154, 0.12),
+		0 0 1rem rgba(242, 106, 154, 0.45);
+	transform: translateY(-50%);
+}
+
+[data-screen="main"] button::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	right: 1rem;
+	width: 1.1rem;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, currentColor);
+	opacity: 0.52;
+	transform: translateY(-50%);
+}
+
+[data-screen="main"] button:hover,
+[data-screen="main"] button:focus {
+	border-color: rgba(255, 255, 255, 0.95);
+	background:
+		linear-gradient(90deg, rgba(242, 106, 154, 0.96), rgba(255, 169, 198, 0.9)),
+		linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(127, 216, 206, 0.2));
+	box-shadow:
+		0 1.1rem 2.2rem rgba(154, 63, 100, 0.25),
+		0 0 0 0.35rem rgba(255, 255, 255, 0.26);
+	color: #ffffff;
+	transform: translateX(-0.55rem);
+	outline: none;
+}
+
+[data-screen="main"] button:hover::before,
+[data-screen="main"] button:focus::before {
+	background: #ffffff;
+	box-shadow:
+		0 0 0 0.32rem rgba(255, 255, 255, 0.24),
+		0 0 1.1rem rgba(255, 255, 255, 0.72);
+}
+
+main-menu {
+	right: 0;
+	bottom: clamp(2rem, 8vh, 5rem);
+	gap: 0.15rem;
+	z-index: 3;
+}
+
+main-menu [data-content="wrapper"] {
+	flex-direction: column;
+	align-items: flex-end;
+}
+
+@keyframes somaFloat {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+
+	50% {
+		transform: translateY(-0.7rem);
+	}
+}
+
+@media screen and (max-width: 48em) {
+	[data-screen="main"] {
+		justify-content: flex-end;
+		background-position: center;
+	}
+
+	[data-screen="main"]::before {
+		background:
+			linear-gradient(180deg, rgba(255, 248, 252, 0.9) 0%, rgba(255, 248, 252, 0.62) 46%, rgba(255, 248, 252, 0.9) 100%),
+			radial-gradient(circle at 65% 22%, rgba(255, 214, 229, 0.72), transparent 34%);
+	}
+
+	[data-screen="main"]::after {
+		right: -2rem;
+		bottom: 8.5rem;
+		width: 15rem;
+		min-width: 15rem;
+		opacity: 0.88;
+	}
+
+	[data-ui="main-brand"] {
+		top: 1rem;
+		left: 1.1rem;
+		width: calc(100% - 2.2rem);
+	}
+
+	[data-ui="main-title"] {
+		font-size: clamp(2.1rem, 11vw, 3.8rem);
+	}
+
+	main-menu {
+		position: relative;
+		right: auto;
+		bottom: auto;
+		width: 100%;
+		margin: 0 0 1.2rem;
+		align-items: center;
+	}
+
+	main-menu [data-content="wrapper"] {
+		width: 100%;
+		align-items: center;
+	}
+
+	[data-screen="main"] button {
+		width: calc(100% - 2rem);
+		max-width: 22rem;
+		margin: 0.25rem 1rem;
+	}
+}
+
+/**
+ * ===========================
+ * Save and Load Menus Styling
+ * ===========================
+**/
+
+/* Slots Style */
+[data-component="save-slot"] figure {
+
+}
+
+/* Slot's Image Style */
+[data-component="save-slot"] img {
+
+}
+
+/* Slots Title Style */
+[data-component="save-slot"] figcaption {
+
+}
+
+/* Slots Delete Button Style */
+[data-component="save-slot"] button {
+
+}
+
+/**
+ * ===========================
+ * Game Elements Styling
+ * ===========================
+**/
+
+/* Choice Buttons style */
+[data-component="choice-container"] button {
+
+}
+
+/* Choice Button Style on Hover */
+[data-component="choice-container"] button:hover {
+
+}
+
+text-input.llm-input {
+	position: fixed;
+	right: 0;
+	bottom: 1rem;
+	left: 0;
+	z-index: 12;
+	justify-content: center;
+	align-items: flex-end;
+	width: 100%;
+	height: auto;
+	min-height: 0;
+	padding: 0 0.75rem 0.75rem;
+	background: transparent;
+	pointer-events: none;
+	backdrop-filter: none;
+	overflow: hidden;
+}
+
+text-input.llm-input .modal__content {
+	display: flex;
+	flex-direction: column;
+	gap: 0.7rem;
+	width: min(76rem, calc(100vw - 1rem));
+	min-width: min(46rem, calc(100vw - 1rem));
+	max-height: calc(100vh - 6rem);
+	margin: 0 auto;
+	padding: 1.15rem 1.2rem 1rem;
+	border: 1px solid rgba(255, 255, 255, 0.68);
+	border-radius: 8px;
+	background:
+		linear-gradient(180deg, rgba(255, 250, 253, 0.94), rgba(255, 238, 247, 0.9)),
+		linear-gradient(135deg, rgba(242, 106, 154, 0.18), rgba(127, 216, 206, 0.16));
+	box-shadow:
+		0 0.75rem 1.8rem rgba(48, 24, 40, 0.22),
+		inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+	color: #3d2b36;
+	font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+	pointer-events: auto;
+	backdrop-filter: blur(10px);
+	overflow-y: auto;
+}
+
+text-input.llm-input [data-content="message"] {
+	margin: 0 0 0.8rem;
+	color: #654155;
+	font-size: 1rem;
+	font-weight: 800;
+	line-height: 1.45;
+}
+
+text-input.llm-input textarea {
+	width: 100%;
+	height: clamp(8rem, 24vh, 13rem);
+	min-height: 8rem;
+	max-height: 13rem;
+	padding: 0.75rem 0.85rem;
+	resize: vertical;
+	border: 1px solid rgba(242, 106, 154, 0.28);
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.88);
+	box-shadow: inset 0 0.15rem 0.6rem rgba(85, 41, 61, 0.08);
+	color: #2d2431;
+	font-family: inherit;
+	font-size: 1rem;
+	line-height: 1.55;
+	outline: none;
+}
+
+text-input.llm-input textarea:focus {
+	border-color: rgba(242, 106, 154, 0.72);
+	box-shadow:
+		0 0 0 0.22rem rgba(242, 106, 154, 0.14),
+		inset 0 0.15rem 0.6rem rgba(85, 41, 61, 0.08);
+}
+
+text-input.llm-input small {
+	display: block;
+	min-height: 1.35rem;
+	margin-top: 0.45rem;
+	color: #c44272;
+	font-weight: 700;
+}
+
+text-input.llm-input button {
+	min-width: 7rem;
+	height: 2.55rem;
+	margin-top: 0.35rem;
+	border: 0;
+	border-radius: 999px;
+	background: linear-gradient(90deg, #f26a9a, #ff9abb);
+	box-shadow: 0 0.55rem 1.2rem rgba(163, 65, 104, 0.22);
+	color: #ffffff;
+	font-family: inherit;
+	font-weight: 900;
+	align-self: flex-end;
+}
+
+text-input.llm-input button:hover,
+text-input.llm-input button:focus {
+	background: linear-gradient(90deg, #e94f85, #f26a9a);
+	transform: translateY(-1px);
+	outline: none;
+}
+
+@media screen and (max-width: 37.5em) {
+	text-input.llm-input {
+		bottom: 0.5rem;
+		padding: 0 0.5rem 0.5rem;
+	}
+
+	text-input.llm-input .modal__content {
+		width: 100%;
+		min-width: 0;
+		max-height: calc(100vh - 1rem);
+		padding: 0.9rem;
+	}
+
+	text-input.llm-input textarea {
+		height: clamp(7.5rem, 28vh, 12rem);
+		min-height: 7.5rem;
+	}
+}
+
+/* Text Box styling */
+[data-component="text-box"] {
+
+}
+
+/* Character Name Style */
+[data-ui="who"] {
+
+}
+
+/* Style for Centered Text */
+[data-component="centered-dialog"] {
+
+}
+
+/* Character Images Styles */
+[data-screen="game"] [data-character] {
+
+}
+
+/* Other Images Styles */
+[data-screen="game"] [data-image] {
+
+}
+
+/**
+ * ===========================
+ * Quick Menu Styling
+ * ===========================
+**/
+
+/* These styles are applied to the Mobile version of the Quick Menu */
+
+/* Quick Menu Style */
+[data-component="quick-menu"] {
+
+}
+
+/* Quick Menu Buttons Style */
+[data-component="quick-menu"] span {
+
+}
+
+/* Quick Menu Buttons Style on Hover */
+[data-component="quick-menu"] span:hover {
+
+}
+
+/* Quick Menu Buttons Icon Style */
+[data-component="quick-menu"] > span > .fa {
+
+}
+
+/**
+ * ===========================
+ * Range Styling
+ * ===========================
+**/
+
+/* Use the background property to set a color for these */
+input[type=range]:focus::-webkit-slider-runnable-track {
+
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+
+}
+
+input[type=range]:focus::-ms-fill-upper {
+
+}
+
+input[type=range]:focus::-ms-fill-lower {
+
+}
+
+input[type=range]::-moz-range-track {
+
+}
+
+input[type=range]::-ms-fill-lower {
+
+}
+
+input[type=range]::-ms-fill-upper {
+
+}
+
+/** Medium Screens, Phablets (601px) **/
+@media screen and (min-width: 37.56255em) {
+	/* Styles for the desktop version of the Quick Menu */
+
+	/* Quick Menu Style */
+	[data-component="quick-menu"] {
+
+	}
+
+	/* Quick Menu Buttons Style */
+	[data-component="quick-menu"] span {
+
+	}
+
+	/* Quick Menu Buttons Style on Hover */
+	[data-component="quick-menu"] span:hover {
+
+	}
+}
+
+/** Medium Devices, Tablets (992px)**/
+@media screen and (min-width: 62em) {
+
+}
+
+/** HD Screen, Large Devices, Wide Screens, Desktop (1200px) **/
+@media screen and (min-width: 75em) {
+
+}
+
+/** Full HD Screen, Large Devices, Wide Screens, Large Desktops (1920px) **/
+@media screen and (min-width: 120em) {
+
+}
+
+/** Retina Screen , Large Devices, Wide Screens(2560px) **/
+@media screen and (min-width: 160em) {
+
+}
+
+/** 4k Screens, Large Devices, Wide Screens (3840px) **/
+@media screen and (min-width: 240em) {
+
+}
+
+/** 5k Screens, Large Devices, Wide Screens (5000px) **/
+@media screen and (min-width: 312.5em) {
+
+}
+
+/** 8k Screens, Large Devices, Wide Screens (8000px) **/
+@media screen and (min-width: 500em) {
+
+}
