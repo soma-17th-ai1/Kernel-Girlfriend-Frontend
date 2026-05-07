@@ -105,7 +105,7 @@ monogatari.settings({
 
 	// 스플래시 스크린 라벨 이름입니다. 해당 이름의 라벨이 스크립트에 존재하면
 	// 로딩 화면 직후 스플래시 스크린을 표시합니다.
-	'SplashScreenLabel': '_SplashScreen',
+	'SplashScreenLabel': '',
 
 	// 게임 데이터를 저장할 스토리지 엔진을 정의합니다. *
 	// 사용 가능한 어댑터:
