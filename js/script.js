@@ -101,7 +101,6 @@ const SAVE_SLOT_PREFIX = 'SaveLabel';
 const SAVE_SLOT_ID = 1;
 const SAVE_SLOT_KEY = 'Save_1';
 const SAVE_SLOT_NAME = 'In Progress';
-const DIALOG_LOG_LIMIT = 120;
 // 자동 저장 트리거 라벨 — Start/NewGame 빌드업 + LLMChat 채팅 모두 포함.
 // LLMChat 을 빠뜨리면 채팅 도중 quit 시 마지막 저장이 빌드업 시점에 머물러 dialog-log 유실 등 발생.
 const SCRIPT_AUTOSAVE_LABELS = new Set (['Start', 'NewGame', 'LLMChat']);
@@ -545,65 +544,6 @@ async function fetchResume () {
 	} catch (e) { return { ok: false, status: 0 }; }
 }
 
-function applyBackendResumeState (beResume) {
-	const state = beResume?.state || beResume;
-	if (!state) return null;
-	const prevGame   = monogatari.storage ('game')   || {};
-	const prevLLM    = monogatari.storage ('llm')    || {};
-	const prevPlayer = monogatari.storage ('player') || {};
-	const gameState = {
-		affinity:         finiteNumber (state.affinity, finiteNumber (prevGame.affinity, 0)),
-		affinity_delta:   0,
-		progress:         finiteNumber (state.progress, finiteNumber (prevGame.progress, 0)),
-		chat_count:       finiteNumber (state.chat_count, finiteNumber (prevGame.chat_count, 0)),
-		current_scene_id: state.current_scene_id || prevGame.current_scene_id || 'SCENE_FIRST_MEET'
-	};
-	monogatari.storage ({
-		player: { name: state.player_name || prevPlayer.name || 'Player' },
-		sera:   { name: 'Sera' },
-		game: Object.assign ({}, prevGame, gameState),
-		llm: Object.assign ({}, prevLLM, {
-			emotion:    state.emotion || prevLLM.emotion || 'NEUTRAL',
-			shouldEnd: !!state.is_ended
-		})
-	});
-	return gameState;
-}
-
-function patchSaveDataWithBackendResume (saveData, beResume) {
-	const state = beResume?.state || beResume;
-	const storage = saveData?.game?.storage;
-	if (!state || !storage) return false;
-	const prevGame   = storage.game   || {};
-	const prevLLM    = storage.llm    || {};
-	const prevPlayer = storage.player || {};
-	storage.player = { name: state.player_name || prevPlayer.name || 'Player' };
-	storage.sera = { name: 'Sera' };
-	storage.game = Object.assign ({}, prevGame, {
-		affinity:         finiteNumber (state.affinity, finiteNumber (prevGame.affinity, 0)),
-		affinity_delta:   0,
-		progress:         finiteNumber (state.progress, finiteNumber (prevGame.progress, 0)),
-		chat_count:       finiteNumber (state.chat_count, finiteNumber (prevGame.chat_count, 0)),
-		current_scene_id: state.current_scene_id || prevGame.current_scene_id || 'SCENE_FIRST_MEET'
-	});
-	storage.llm = Object.assign ({}, prevLLM, {
-		emotion:    state.emotion || prevLLM.emotion || 'NEUTRAL',
-		shouldEnd: !!state.is_ended
-	});
-	// 배경은 monogatari state.scene 으로 자동 트래킹되므로 별도 storage 트래킹 불필요.
-	return true;
-}
-
-async function patchLocalSaveSlotWithBackendResume (beResume) {
-	try {
-		const saveData = await monogatari.Storage.get (SAVE_SLOT_KEY);
-		if (patchSaveDataWithBackendResume (saveData, beResume)) {
-			await monogatari.Storage.set (SAVE_SLOT_KEY, saveData);
-		}
-	} catch (e) {
-	}
-}
-
 async function _confirmReset () {
 	return new Promise ((resolve) => {
 		const overlay = document.createElement ('div');
@@ -643,38 +583,9 @@ async function _hasLocalAutoSave () {
 	}
 }
 
-function _loadAndAwaitRestoration (slotKey) {
-	return new Promise ((resolve, reject) => {
-		const targets = [
-			document.querySelector ('visual-novel'),
-			document.querySelector ('#monogatari'),
-			document.body,
-			window
-		].filter ((target, index, list) => target && list.indexOf (target) === index);
-		let settled = false;
-		let safety = null;
-		const cleanup = () => {
-			targets.forEach (target => target.removeEventListener ('didLoadGame', onDidLoad));
-			if (safety) clearTimeout (safety);
-		};
-		const finish = () => { if (settled) return; settled = true; cleanup (); resolve (); };
-		const onDidLoad = () => finish ();
-		targets.forEach (target => target.addEventListener ('didLoadGame', onDidLoad, { once: true }));
-		safety = setTimeout (() => {
-			console.warn ('[resume] didLoadGame timeout');
-			finish ();
-		}, 2500);
-		monogatari.loadFromSlot (slotKey).catch (e => {
-			cleanup ();
-			settled = true;
-			reject (e);
-		});
-	});
-}
-
 let _resumeSlotSaveTimer = null;
 let _savingResumeSlot = false;
-function saveResumeSlot (reason = 'manual') {
+async function saveResumeSlot (reason = 'manual') {
 	if (_savingResumeSlot) return;
 	_savingResumeSlot = true;
 	try {
@@ -683,7 +594,8 @@ function saveResumeSlot (reason = 'manual') {
 		const sceneAtSave = monogatari.state ('scene') || '(none)';
 		const charsAtSave = (monogatari.state ('characters') || []).length;
 		console.debug ('[auto-save]', SAVE_SLOT_KEY, '| label:', label, '| step:', step, '| scene:', sceneAtSave, '| characters:', charsAtSave, '| reason:', reason);
-		monogatari.saveTo (SAVE_SLOT_PREFIX, SAVE_SLOT_ID, SAVE_SLOT_NAME);
+		// monogatari.saveTo 는 playing=true 일 때 Promise 를 반환한다. await 해야 lock 이 의미 있어진다.
+		await monogatari.saveTo (SAVE_SLOT_PREFIX, SAVE_SLOT_ID, SAVE_SLOT_NAME);
 	} catch (e) {
 		console.warn ('[save] auto-save 실패:', e);
 	} finally {
@@ -705,12 +617,15 @@ function _scheduleScriptAutoSave (reason = 'script-state') {
 }
 
 // 디바운스를 거치지 않고 즉시 1회 저장. (debounced 타이머가 fire 되기 전에 인터럽트가 와도 직전 상태 보존.)
+// LocalStorage 어댑터는 setItem 자체가 동기이므로, beforeunload 처럼 await 할 수 없는 경로에서도
+// Promise 가 resolve 되기 전에 데이터는 localStorage 에 반영된다.
 function flushResumeSlotSave (reason = 'flush') {
 	if (_resumeSlotSaveTimer) {
 		clearTimeout (_resumeSlotSaveTimer);
 		_resumeSlotSaveTimer = null;
 	}
-	if (_shouldAutoSaveScriptState ()) saveResumeSlot (reason);
+	if (_shouldAutoSaveScriptState ()) return saveResumeSlot (reason);
+	return Promise.resolve ();
 }
 
 let _scriptAutoSaveInstalled = false;
@@ -791,140 +706,130 @@ async function handleNewGame () {
 	}
 }
 
+// 4 시나리오:
+//   (1) FE+BE: 정상. 로컬 슬롯 로드 + BE recent_messages 로 채팅 로그 복원.
+//   (2) FE-only: 차선. 로컬 슬롯 로드 + BE 세션 새로 생성 (recent_messages 는 빈 배열).
+//   (3) BE-only: 이어하기 불가. BE 세션 초기화하고 alert.
+//   (4) Neither: alert.
 async function handleResume () {
-	console.debug ('[resume] handleResume entry');
+	console.debug ('[resume] entry');
 	try {
 		document.querySelectorAll ('text-input').forEach (n => n.remove ());
 
 		const [me, hasLocal] = await Promise.all ([fetchSessionMe (), _hasLocalAutoSave ()]);
-		console.debug ('[resume] fetchSessionMe:', me, '| _hasLocalAutoSave:', hasLocal);
-		const beReady = !!(me?.has_session && me?.is_started !== false);
+		const beHasSession = !!me?.has_session;
+		const beIsStarted  = beHasSession && me?.is_started !== false;
+		console.debug ('[resume] hasLocal=', hasLocal, '| beHasSession=', beHasSession, '| beIsStarted=', beIsStarted, '| me=', me);
 
-		if (!beReady && !hasLocal) {
-			alert ('No resumable session was found.');
+		// (3)(4): 로컬 슬롯이 없으면 이어하기 불가. BE 세션이 떠 있다면 정리.
+		if (!hasLocal) {
+			if (beHasSession) {
+				console.debug ('[resume] BE-only detected — resetting BE session');
+				try { await postSessionsCreate (true); } catch (e) { console.warn ('[resume] BE reset failed:', e); }
+			}
+			alert ('No resumable session was found.\n저장된 게임이 없습니다. 새로 시작해주세요.');
 			_refreshSomaMainMenu ();
 			return;
 		}
 
-		let beResume = null;
-		if (beReady) {
-			const r = await fetchResume ();
-			if (r.ok) {
-				beResume = r.data;
-				console.debug ('[resume] /sessions/me/resume response:', beResume);
-				// 즉시 HUD 페인트 — loadFromSlot 가 끝나기 전에 BE state 의 affinity/progress 를 화면에 보여줘서
-				// "첫 resume 에서 옛 값이 잠시 보였다가 나중에 갱신" 증상을 차단.
-				const beState = beResume?.state || {};
-				const beAffinity = finiteNumber (beState.affinity, undefined);
-				const beProgress = finiteNumber (beState.progress, undefined);
-				if (typeof beAffinity === 'number' || typeof beProgress === 'number') {
-					setGameActive (true);
-					ensureHUD ();
-					updateHUD ({ progress: beProgress, affinity: beAffinity });
-					console.debug ('[resume] painted backend state immediately:', { affinity: beAffinity, progress: beProgress });
-				}
-			} else {
-				console.warn ('[resume] /sessions/me/resume status=', r.status);
-			}
-		}
+		// player_name 은 BE start 에 사용될 수 있어 슬롯에서 미리 꺼낸다.
+		let playerName = 'Player';
+		try {
+			const slot = await monogatari.Storage.get (SAVE_SLOT_KEY);
+			playerName = slot?.game?.storage?.player?.name || playerName;
+		} catch (e) {}
 
-		// BE state 즉시 반영 — loadFromSlot 가 끝난 뒤 storage 가 BE 값으로 덮이도록
-		// 슬롯 자체를 패치한다. (그 이후 applyBackendResumeState 가 in-memory 에 한 번 더 덮어 쓴다.)
-		let loadedFromSlot = false;
-		if (hasLocal) {
+		// BE 세션이 없으면 생성. 있으면 절대 POST /sessions 호출하지 않는다 (409 방지).
+		if (!beHasSession) {
+			console.debug ('[resume] BE session missing — creating');
+			try { await postSessionsCreate (false); } catch (e) { console.warn ('[resume] /sessions create failed:', e); }
+		}
+		// 아직 start 되지 않았으면 start (멱등 보장은 BE 책임).
+		if (!beIsStarted) {
+			console.debug ('[resume] BE session not started — calling /sessions/me/start');
 			try {
-				if (beResume?.state) await patchLocalSaveSlotWithBackendResume (beResume);
-				console.debug ('[resume] calling loadFromSlot with key:', SAVE_SLOT_KEY);
-				await _loadAndAwaitRestoration (SAVE_SLOT_KEY);
-				loadedFromSlot = true;
-				console.debug ('[resume] loadFromSlot complete | label:', monogatari.state ('label'), '| step:', monogatari.state ('step'), '| scene:', monogatari.state ('scene'));
-			} catch (e) {
-				console.warn ('[resume] loadFromSlot 실패:', e);
-				if (!beResume) { alert ('Could not load the saved game.'); return; }
-			}
+				await fetch (`${API_BASE}/sessions/me/start`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify ({ player_name: playerName })
+				});
+			} catch (e) { console.warn ('[resume] /sessions/me/start failed:', e); }
 		}
 
-	_sessionBootstrapped = !!beResume;
+		// 채팅 복원용 recent_messages — start 가 끝난 세션에서만 의미가 있다.
+		let recentMessages = [];
+		if (beIsStarted) {
+			const r = await fetchResume ();
+			if (r.ok && r.data) {
+				recentMessages = Array.isArray (r.data.recent_messages) ? r.data.recent_messages : [];
+				console.debug ('[resume] BE recent_messages:', recentMessages.length, 'entries');
+			} else {
+				console.warn ('[resume] /sessions/me/resume failed status=', r.status);
+			}
+		}
+		_sessionBootstrapped = true;
 
-	if (loadedFromSlot) {
-		const restoredLabel = monogatari.state ('label') || 'Start';
-		const restoredStep = monogatari.state ('step') || 0;
-		const resumeIntoChat = CHAT_RESUME_LABELS.has (restoredLabel);
-		if (!resumeIntoChat) {
-			setGameActive (true);
-			monogatari.global ('playing', true);
-			pendingStreamResponse = null;
-			document.querySelectorAll ('#monogatari [data-screen]').forEach (el => {
-				if (typeof el.setState === 'function') el.setState ({ open: false });
-			});
-			const gameScreen = document.querySelector ('#monogatari [data-screen="game"]');
-			if (gameScreen && typeof gameScreen.setState === 'function') gameScreen.setState ({ open: true });
-			// 배경 복원은 monogatari onLoad 의 Scene action 이 자동 처리 (state.scene 기반).
-			const labels = monogatari.label ();
-			if (labels && labels[restoredStep]) monogatari.run (labels[restoredStep]);
+		// (1)(2): 로컬 슬롯 로드. BE 데이터로 절대 패치하지 않음 — 로컬이 진실의 원천.
+		console.debug ('[resume] loadFromSlot start | key=', SAVE_SLOT_KEY);
+		try {
+			await monogatari.loadFromSlot (SAVE_SLOT_KEY);
+		} catch (e) {
+			console.error ('[resume] loadFromSlot failed:', e);
+			alert ('Could not load the saved game.\n' + (e?.message || e));
 			return;
 		}
+		console.debug (
+			'[resume] loadFromSlot done | label=', monogatari.state ('label'),
+			'| step=', monogatari.state ('step'),
+			'| scene=', monogatari.state ('scene'),
+			'| storage=', monogatari.storage ()
+		);
 
-		if (beResume?.state) {
-			applyBackendResumeState (beResume);
-		}
+		const restoredLabel = monogatari.state ('label') || 'Start';
+		const restoredStep = monogatari.state ('step') || 0;
+
+		// 화면 전환은 모든 분기 공통.
 		setGameActive (true);
 		monogatari.global ('playing', true);
 		pendingStreamResponse = null;
-		const prevLLM = monogatari.storage ('llm') || {};
-		const prevBoot = monogatari.storage ('boot') || {};
-		monogatari.storage ({
-			llm: Object.assign ({}, prevLLM, {
-				prompt: '',
-				response: '',
-				event_id: '',
-				next_scene_id: '',
-				shouldEnd: false
-			}),
-			boot: Object.assign ({}, prevBoot, {
-				mode: 'loaded-slot',
-				recent_messages: Array.isArray (beResume?.recent_messages) ? beResume.recent_messages : []
-			})
-		});
-		monogatari.state ({ label: 'LLMChat', step: 0 });
 		document.querySelectorAll ('#monogatari [data-screen]').forEach (el => {
 			if (typeof el.setState === 'function') el.setState ({ open: false });
 		});
 		const gameScreen = document.querySelector ('#monogatari [data-screen="game"]');
 		if (gameScreen && typeof gameScreen.setState === 'function') gameScreen.setState ({ open: true });
-		const labels = monogatari.label ();
-		const step   = monogatari.state ('step');
-		if (labels && labels[step]) monogatari.run (labels[step]);
-		return;
-	}
 
-	try { await monogatari.resetGame (); } catch (e) {  }
-	if (beResume) {
-		const state  = beResume.state || {};
-		const recent = Array.isArray (beResume.recent_messages) ? beResume.recent_messages : [];
-		monogatari.storage ({
-			player: { name: state.player_name || 'Player' },
-			sera:   { name: 'Sera' },
-			game: {
-				affinity:         finiteNumber (state.affinity, 0),
-				affinity_delta:   0,
-				progress:         finiteNumber (state.progress, 0),
-				chat_count:       finiteNumber (state.chat_count, 0),
-				current_scene_id: state.current_scene_id || 'SCENE_FIRST_MEET'
-			},
-			llm: {
-				prompt: '', response: '',
-				emotion: state.emotion || 'NEUTRAL',
-				event_id: '', next_scene_id: '',
-				shouldEnd: !!state.is_ended
-			},
-			boot: { mode: 'resume', recent_messages: recent, scene_title: (beResume.scene && beResume.scene.title) || '' }
-		});
-	}
-	monogatari.state ({ step: 0, label: 'LLMChat' });
-	await _engineStart ();
+		if (CHAT_RESUME_LABELS.has (restoredLabel)) {
+			// 채팅 중간에서 재개 — boot.recent_messages 에 BE 데이터 주입한 뒤 LLMChat[0] 부터 다시 진입.
+			const prevLLM = monogatari.storage ('llm') || {};
+			const prevBoot = monogatari.storage ('boot') || {};
+			monogatari.storage ({
+				llm: Object.assign ({}, prevLLM, {
+					prompt: '',
+					response: '',
+					event_id: '',
+					next_scene_id: '',
+					shouldEnd: false
+				}),
+				boot: Object.assign ({}, prevBoot, {
+					mode: 'loaded-slot',
+					recent_messages: recentMessages
+				})
+			});
+			monogatari.state ({ label: 'LLMChat', step: 0 });
+		}
+
+		const labels = monogatari.label ();
+		const stepNow = monogatari.state ('step');
+		console.debug ('[resume] dispatching | label=', monogatari.state ('label'), '| step=', stepNow, '| labels.length=', labels?.length);
+		if (labels && typeof labels[stepNow] !== 'undefined') {
+			try { await monogatari.run (labels[stepNow]); }
+			catch (e) { console.error ('[resume] run failed:', e); }
+		} else {
+			console.warn ('[resume] no script step at index', stepNow, '— labels=', labels);
+		}
 	} catch (err) {
-		console.error ('[resume] unhandled error in handleResume:', err);
+		console.error ('[resume] unhandled error:', err);
 		alert ('이어 하기 처리 중 오류가 발생했어요. 콘솔을 확인해주세요.\n\n' + (err?.message || err));
 	}
 }
@@ -1058,50 +963,12 @@ function hideHUD () {
 }
 
 
-function getStoredDialogLogEntries () {
-	const raw = monogatari.storage ('dialogLog');
-	const entries = Array.isArray (raw) ? raw : (Array.isArray (raw?.entries) ? raw.entries : []);
-	return entries
-		.filter (entry => entry && entry.dialog)
-		.map (entry => ({
-			id: entry.id || 'narrator',
-			name: entry.name || '',
-			color: entry.color || '#fff',
-			dialog: entry.dialog || ''
-		}));
-}
-
-function setStoredDialogLogEntries (entries) {
-	monogatari.storage ({
-		dialogLog: {
-			entries: (Array.isArray (entries) ? entries : []).slice (-DIALOG_LOG_LIMIT)
-		}
-	});
-}
-
-function appendStoredDialogLogEntry (entry) {
-	if (!entry?.dialog) return;
-	const next = getStoredDialogLogEntries ();
-	next.push ({
-		id: entry.id || 'narrator',
-		name: entry.name || '',
-		color: entry.color || '#fff',
-		dialog: entry.dialog || ''
-	});
-	setStoredDialogLogEntries (next);
-}
-
+// 빌드업(일반 진행) 대화 로그는 monogatari 표준 동작에 맡기고, FE 측에서는 별도로
+// 영구화하지 않는다 (사용자 요구사항 #2: 대화 기록은 원래 로드가 안 됨).
+// 채팅(LLMChat) 로그만 BE recent_messages 로 dialog-log 컴포넌트에 다시 push 한다.
 function clearDialogLogDom () {
 	const dlogList = document.querySelector ('[data-component="dialog-log"] [data-content="log"]');
 	if (dlogList) dlogList.querySelectorAll ('[data-spoke]').forEach (n => n.remove ());
-}
-
-function restoreDialogLogFromStorage ({ force = false } = {}) {
-	const entries = getStoredDialogLogEntries ();
-	if (!entries.length) return;
-	if (force) clearDialogLogDom ();
-	else if (readDialogLogEntries ().length > 0) return;
-	entries.forEach (entry => pushDialogLog (Object.assign ({ persist: false }, entry)));
 }
 
 function pushRecentMessagesToDialogLog (recent, playerName) {
@@ -1118,9 +985,8 @@ function pushRecentMessagesToDialogLog (recent, playerName) {
 	});
 }
 
-function pushDialogLog ({ id = 'narrator', name = '', color = '#fff', dialog = '', persist = true }) {
+function pushDialogLog ({ id = 'narrator', name = '', color = '#fff', dialog = '' }) {
 	if (!dialog) return;
-	if (persist) appendStoredDialogLogEntry ({ id, name, color, dialog });
 	try {
 		const Component = monogatari?.component?.('dialog-log');
 		if (!Component) return;
@@ -1261,7 +1127,6 @@ function cleanupCustomUI () {
 	if (sayEl) sayEl.innerHTML = '';
 	if (whoEl) whoEl.textContent = '';
 	clearDialogLogDom ();
-	setStoredDialogLogEntries ([]);
 	_sessionBootstrapped = false;
 	_seraCurrentSprite = null;
 	_playedSceneIntros.clear ();
@@ -1485,17 +1350,13 @@ monogatari.script ({
 			ensureLogButton ();
 
 			if (boot.mode === 'resume' || boot.mode === 'loaded-slot') {
-				// BE recent_messages 는 chat 의 source of truth (FE storage 는 LLMChat 도중 saveTo 가 자동으로
-				// 안 일어나서 종종 stale). 기존 dialog-log DOM + storage 를 비우고 BE 데이터로 다시 채운다.
+				// 채팅 도중 재개 — BE recent_messages 로 dialog-log DOM 만 복원한다.
+				// (storage 누적은 더 이상 하지 않음. UX 상 마지막 ASSISTANT 메시지는 textbox 에도 표시.)
 				const recent = Array.isArray (boot.recent_messages) ? boot.recent_messages : [];
 				console.debug ('[resume] restoring dialog log from BE recent_messages:', recent.length, 'entries');
 				clearDialogLogDom ();
-				setStoredDialogLogEntries ([]);
 				if (recent.length > 0) {
 					pushRecentMessagesToDialogLog (recent, playerName);
-				}
-				// 마지막 ASSISTANT 메시지를 textbox 에도 표시 (resume 직후 화면이 비어보이지 않게).
-				if (boot.mode === 'resume') {
 					const lastAsst = [...recent].reverse ().find (m => m && m.role === 'ASSISTANT');
 					if (lastAsst?.content) {
 						const sayEl = document.querySelector ('[data-ui="say"]');
@@ -1503,15 +1364,12 @@ monogatari.script ({
 						if (whoEl) whoEl.textContent = '이세라';
 						if (sayEl) sayEl.innerHTML = escapeDialogText (lastAsst.content);
 					}
-					this.storage ({ boot: Object.assign ({}, boot, { mode: 'resume-played' }) });
-				} else {
-					this.storage ({ boot: Object.assign ({}, boot, { mode: 'loaded-slot-played' }) });
 				}
+				// 다음 LLMChat 진입(루프) 시 이 블록을 다시 타지 않도록 모드 전환.
+				this.storage ({ boot: Object.assign ({}, boot, { mode: boot.mode + '-played' }) });
 				// 배경 복원은 monogatari Scene action onLoad 가 자동 처리.
 			} else {
 				await playSceneIntroIfPending (this);
-				// 새 게임에서도 storage 에 누적된 dialog-log 가 있으면 (현재 세션에서 push 된 것) 복원.
-				restoreDialogLogFromStorage ({ force: false });
 			}
 			clearSuggestions ();
 
@@ -1545,12 +1403,8 @@ monogatari.script ({
 				},
 				'Save': function (input) {
 					const prompt = input.trim ();
-					appendStoredDialogLogEntry ({
-						id: 'p',
-						name: (this.storage ('player') || {}).name || 'Player',
-						color: '#8ad8ff',
-						dialog: escapeDialogText (prompt)
-					});
+					// 사용자 발화는 다음 step 의 'p {{llm.prompt}}' dialog 액션이 monogatari 표준 흐름으로
+					// dialog-log 컴포넌트에 push 한다. 별도의 영구 저장은 하지 않는다.
 					this.storage ({
 						llm: {
 							prompt: escapeDialogText (prompt),
