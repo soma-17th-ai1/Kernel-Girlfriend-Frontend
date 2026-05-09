@@ -544,17 +544,17 @@ async function fetchResume () {
 	} catch (e) { return { ok: false, status: 0 }; }
 }
 
-async function _confirmReset () {
+function _confirmModal ({ title, body, ok = 'OK', cancel = 'Cancel' }) {
 	return new Promise ((resolve) => {
 		const overlay = document.createElement ('div');
 		overlay.className = 'confirm-modal';
 		overlay.innerHTML = `
 			<div class="confirm-modal__panel" role="alertdialog">
-                <div class="confirm-modal__title">Reset existing session?</div>
-                <div class="confirm-modal__body">This will clear the current session and local save slot. Start over?</div>
+				<div class="confirm-modal__title">${escapeDialogText (title || '')}</div>
+				<div class="confirm-modal__body">${escapeDialogText (body || '')}</div>
 				<div class="confirm-modal__buttons">
-                    <button type="button" class="confirm-modal__btn confirm-modal__btn--cancel">Cancel</button>
-                    <button type="button" class="confirm-modal__btn confirm-modal__btn--ok">Start Over</button>
+					<button type="button" class="confirm-modal__btn confirm-modal__btn--cancel">${escapeDialogText (cancel)}</button>
+					<button type="button" class="confirm-modal__btn confirm-modal__btn--ok">${escapeDialogText (ok)}</button>
 				</div>
 			</div>
 		`;
@@ -568,6 +568,24 @@ async function _confirmReset () {
 		};
 		overlay.querySelector ('.confirm-modal__btn--cancel').addEventListener ('click', () => close (false));
 		overlay.querySelector ('.confirm-modal__btn--ok').addEventListener ('click', () => close (true));
+	});
+}
+
+function _confirmReset () {
+	return _confirmModal ({
+		title:  'Reset existing session?',
+		body:   'This will clear the current session and local save slot. Start over?',
+		ok:     'Start Over',
+		cancel: 'Cancel'
+	});
+}
+
+function _confirmQuit () {
+	return _confirmModal ({
+		title:  'Quit to main menu?',
+		body:   'Your progress will be saved automatically. You can resume from the main menu.',
+		ok:     'Quit',
+		cancel: 'Cancel'
 	});
 }
 
@@ -592,9 +610,8 @@ async function saveResumeSlot (reason = 'manual') {
 		const label = monogatari.state ('label') || '(none)';
 		const step = monogatari.state ('step');
 		const sceneAtSave = monogatari.state ('scene') || '(none)';
-		const charsAtSave = (monogatari.state ('characters') || []).length;
-		console.debug ('[auto-save]', SAVE_SLOT_KEY, '| label:', label, '| step:', step, '| scene:', sceneAtSave, '| characters:', charsAtSave, '| reason:', reason);
-		// monogatari.saveTo 는 playing=true 일 때 Promise 를 반환한다. await 해야 lock 이 의미 있어진다.
+		console.debug ('[auto-save]', SAVE_SLOT_KEY, '| label:', label, '| step:', step, '| scene:', sceneAtSave, '| reason:', reason);
+		// monogatari.saveTo 는 playing=true 일 때 Promise 를 반환한다. 호출 측에서 await 하면 기본 race 없음.
 		await monogatari.saveTo (SAVE_SLOT_PREFIX, SAVE_SLOT_ID, SAVE_SLOT_NAME);
 	} catch (e) {
 		console.warn ('[save] auto-save 실패:', e);
@@ -645,15 +662,10 @@ function _installScriptAutoSaveHook () {
 	});
 	window.addEventListener ('beforeunload', () => flushResumeSlotSave ('beforeunload'));
 
-	// Quit 직전 강제 저장 — 엔진의 'quit' 리스너가 confirm 후 'end' 액션을 실행하기 전에 fire 되므로
-	// 여기서 동기적으로 flush 하면 마지막 채팅까지 슬롯에 들어간다.
-	// (engine 의 'end' 액션은 resetGame() 으로 in-memory storage 를 비워 그 다음에 saveTo 해도 빈 데이터만 저장됨.)
-	monogatari.registerListener ('quit', {
-		callback: function () {
-			flushResumeSlotSave ('quit');
-			return true; // 엔진 quit 리스너의 propagation 차단되지 않게 truthy 반환
-		}
-	});
+	// 엔진의 'quit' 경로는 우하단 quick-menu 의 Quit 버튼에서만 트리거됐는데, 그 버튼은 CSS 로
+	// 숨기고 우리가 만든 setting 화면의 Quit 버튼 (handleSomaQuit) 으로 대체했다.
+	// 그래서 별도의 quit 리스너는 더 이상 등록하지 않는다 — UI Quit 흐름이 명시적으로 await saveTo 후
+	// engine.run('end') 를 부르므로 race 자체가 없다.
 }
 
 async function _engineStart () {
@@ -835,6 +847,23 @@ async function handleResume () {
 }
 
 
+// 우리만의 Quit 흐름 — 우하단 quick-menu 의 Quit 버튼은 CSS 로 숨기고, 사용자는 settings 화면의
+// "Quit to main menu" 버튼으로만 게임을 빠져나간다. confirm 후 await saveTo (race 차단) → engine.run('end').
+async function handleSomaQuit () {
+	console.debug ('[soma-quit] entry');
+	try {
+		const ok = await _confirmQuit ();
+		if (!ok) return;
+		// 명시적 await — 저장이 끝나기 전에 engine.run('end') 가 resetGame() 으로 state 를
+		// 덮어쓰는 race 를 차단한다.
+		await flushResumeSlotSave ('soma-quit');
+		try { await monogatari.run ('end'); }
+		catch (e) { console.warn ('[soma-quit] engine.run("end") 실패:', e); }
+	} catch (err) {
+		console.error ('[soma-quit] unhandled error:', err);
+	}
+}
+
 monogatari.registerListener ('soma-new', {
 	callback: function () {
 		console.debug ('[soma-new] click → handleNewGame()');
@@ -846,6 +875,13 @@ monogatari.registerListener ('soma-resume', {
 	callback: function () {
 		console.debug ('[soma-resume] click → handleResume()');
 		handleResume ();
+		return true;
+	}
+});
+monogatari.registerListener ('soma-quit', {
+	callback: function () {
+		console.debug ('[soma-quit] click → handleSomaQuit()');
+		handleSomaQuit ();
 		return true;
 	}
 });
@@ -887,6 +923,22 @@ class SomaMainMenu extends MainMenu {
 }
 SomaMainMenu.tag = 'main-menu';
 monogatari.registerComponent (SomaMainMenu);
+
+// settings 화면에 "Quit to main menu" 버튼 추가. 클릭 시 soma-quit 리스너 트리거 → handleSomaQuit.
+const SettingsScreen = monogatari.component ('settings-screen');
+class SomaSettingsScreen extends SettingsScreen {
+	render () {
+		const baseHtml = super.render ();
+		const quitHtml = `
+			<div class="row row--center padded settings-quit-row">
+				<button type="button" data-action="soma-quit" class="settings-quit-btn">Quit to main menu</button>
+			</div>
+		`;
+		return baseHtml + quitHtml;
+	}
+}
+SomaSettingsScreen.tag = 'settings-screen';
+monogatari.registerComponent (SomaSettingsScreen);
 
 function _refreshSomaMainMenu () {
 	document.querySelectorAll ('main-menu').forEach (el => {
@@ -985,20 +1037,20 @@ function pushRecentMessagesToDialogLog (recent, playerName) {
 	});
 }
 
+// dialog-log 컴포넌트의 write() 와 동일한 형식으로 DOM 에 직접 append.
+// Component.instances 콜백 경로는 인스턴스가 아직 mount 되지 않았거나 race 인 경우
+// 일부 push 가 조용히 누락되는 사례가 있어, 직접 querySelector + insertAdjacentHTML 로 대체.
 function pushDialogLog ({ id = 'narrator', name = '', color = '#fff', dialog = '' }) {
 	if (!dialog) return;
-	try {
-		const Component = monogatari?.component?.('dialog-log');
-		if (!Component) return;
-		Component.instances ((instance) => {
-			instance.write ({
-				id,
-				character: { name, color },
-				dialog
-			});
-		});
-	} catch (e) {
-	}
+	const dlogList = document.querySelector ('[data-component="dialog-log"] [data-content="log"]');
+	if (!dlogList) return;
+	const placeholder = dlogList.querySelector ('[data-content="placeholder"]');
+	if (placeholder) placeholder.remove ();
+	const safeColor = String (color).replace (/[^#a-zA-Z0-9(),. ]/g, '');
+	const html = (id !== 'narrator' && id !== 'centered')
+		? `<div data-spoke="${id}" class="named"><span style="color:${safeColor};">${escapeDialogText (name)} </span><p>${dialog}</p></div>`
+		: `<div data-spoke="${id}" class="unnamed"><p>${dialog}</p></div>`;
+	dlogList.insertAdjacentHTML ('beforeend', html);
 }
 
 function readDialogLogEntries () {

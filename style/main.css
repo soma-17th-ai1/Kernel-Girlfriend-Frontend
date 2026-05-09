@@ -1455,3 +1455,40 @@ input[type=range]::-ms-fill-upper {
 	font-size: 0.9rem;
 }
 
+/**
+ * ===========================
+ * Quick-menu (우하단) — distraction-free 버튼만 노출.
+ * 나머지(save/load/settings/quit/auto-play/log/back/skip 등)는 숨김.
+ * ===========================
+**/
+[data-component="quick-menu"] [data-action]:not([data-action="distraction-free"]) {
+	display: none !important;
+}
+
+/**
+ * ===========================
+ * Settings 화면의 Quit 버튼 (handleSomaQuit 트리거)
+ * ===========================
+**/
+.settings-quit-row {
+	margin: 1.5rem auto 0.75rem;
+	text-align: center;
+}
+.settings-quit-btn {
+	background: rgba(218, 76, 76, 0.85);
+	color: #fff;
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	padding: 0.5rem 1.5rem;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 0.95rem;
+	letter-spacing: 0.05em;
+	transition: background 160ms ease, transform 100ms ease;
+}
+.settings-quit-btn:hover {
+	background: rgba(196, 56, 56, 0.95);
+}
+.settings-quit-btn:active {
+	transform: translateY(1px);
+}
+
