@@ -1,4 +1,4 @@
-/* global monogatari */
+import { monogatari } from './engine.js';
 
 // 영구 저장용 변수
 monogatari.storage ({

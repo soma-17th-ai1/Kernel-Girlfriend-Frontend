@@ -7,17 +7,14 @@
  * =======================================
  **/
 
-'use strict';
-/* global Monogatari */
-
-const monogatari  = Monogatari.default;
+import { monogatari } from './engine.js';
 
 monogatari.settings({
 
 	// 게임의 이름입니다. 이 이름은 모든 데이터를 저장할 때 사용되므로
 	// 한 번 배포한 게임의 이름은 변경하지 않는 것이 좋습니다. 새 릴리스를
 	// 표시하려면 `Version` 설정을 사용하세요.
-	'Name': 'My Visual Novel',
+	'Name': '커널을 좋아하는 옆자리의 그녀',
 
 	// 게임의 버전입니다 (시맨틱 버전 규칙, https://semver.org/).
 	'Version': '0.1.0',
