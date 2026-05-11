@@ -34,6 +34,27 @@ export function setGameActive (active) {
 	else document.body.classList.remove ('game-active');
 }
 
+// 브라우저에서 게임 시작 시 자동 풀스크린.
+// 반드시 user gesture(클릭/키 입력) 안에서 호출되어야 함 — 그래서 메뉴 클릭 핸들러에서 호출한다.
+// 이미 풀스크린이거나, Electron 등 API 미지원/실패 시엔 조용히 무시.
+export function enterFullscreen () {
+	if (document.fullscreenElement) return;
+	const el = document.documentElement;
+	const req = el.requestFullscreen
+		|| el.webkitRequestFullscreen
+		|| el.mozRequestFullScreen
+		|| el.msRequestFullscreen;
+	if (!req) return;
+	try {
+		const p = req.call (el);
+		if (p && typeof p.catch === 'function') {
+			p.catch (e => console.debug ('[fullscreen] request rejected:', e?.message || e));
+		}
+	} catch (e) {
+		console.debug ('[fullscreen] request error:', e?.message || e);
+	}
+}
+
 export function cleanupCustomUI () {
 	setGameActive (false);
 	cancelPendingAutoSave ();
@@ -84,6 +105,7 @@ export async function engineStart () {
 
 export async function handleNewGame () {
 	console.debug ('[new-game] handleNewGame entry');
+	enterFullscreen ();
 	try {
 		cleanupCustomUI ();
 		const me = await fetchSessionMe ();
@@ -119,6 +141,7 @@ export async function handleNewGame () {
 //   (4) Neither: alert.
 export async function handleResume () {
 	console.debug ('[resume] entry');
+	enterFullscreen ();
 	try {
 		document.querySelectorAll ('text-input').forEach (n => n.remove ());
 
@@ -232,6 +255,7 @@ export async function handleResume () {
 
 export async function handleDevStart () {
 	console.debug ('[dev-start] entry');
+	enterFullscreen ();
 	try {
 		cleanupCustomUI ();
 		try {
