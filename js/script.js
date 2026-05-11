@@ -101,10 +101,7 @@ monogatari.script ({
 		// 인트로 직전 — blank_white SVG 로 즉시 흰 배경.
 		'show scene blank_white',
 		// 인트로 로고 오버레이.
-		async function () {
-			await showIntroLogo ();
-			return true;
-		},
+		showIntroLogo,
 		// 인트로 끝나면 검은 배경으로 페이드.
 		'show scene fade_black with fadeIn',
 		'jump NewGame'

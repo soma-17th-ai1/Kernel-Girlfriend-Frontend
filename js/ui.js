@@ -12,35 +12,32 @@ import {
 // ─── 인트로 로고 ───────────────────────────────────────────────────────────────
 
 let _introLogoEl = null;
-export function showIntroLogo () {
-	return new Promise (async (resolve) => {
-		if (_introLogoEl) {
-			_introLogoEl.remove ();
-			_introLogoEl = null;
-		}
-		document.body.classList.add ('intro-active');
-		const overlay = document.createElement ('div');
-		overlay.className = 'intro-logo';
-		overlay.innerHTML = `
-			<div class="intro-logo__inner">
-				<img src="assets/logo/game_logo.jpeg" alt="커널을 좋아하는 옆자리의 그녀" />
-				<div class="intro-logo__subtitle">Software Maestro &times; First Love</div>
-			</div>
-		`;
-		document.body.appendChild (overlay);
-		_introLogoEl = overlay;
-
-		void overlay.offsetWidth;
-		overlay.classList.add ('intro-logo--visible');
-		await new Promise (r => setTimeout (r, 2500));
-		await new Promise (r => setTimeout (r, 2000));
-		overlay.classList.add ('intro-logo--leaving');
-		await new Promise (r => setTimeout (r, 1500));
-		if (overlay.parentNode) overlay.parentNode.removeChild (overlay);
+export async function showIntroLogo () {
+	if (_introLogoEl) {
+		_introLogoEl.remove ();
 		_introLogoEl = null;
-		document.body.classList.remove ('intro-active');
-		resolve ();
-	});
+	}
+	document.body.classList.add ('intro-active');
+	const overlay = document.createElement ('div');
+	overlay.className = 'intro-logo';
+	overlay.innerHTML = `
+		<div class="intro-logo__inner">
+			<img src="assets/logo/game_logo.jpeg" alt="커널을 좋아하는 옆자리의 그녀" />
+			<div class="intro-logo__subtitle">Software Maestro &times; First Love</div>
+		</div>
+	`;
+	document.body.appendChild (overlay);
+	_introLogoEl = overlay;
+
+	void overlay.offsetWidth;
+	overlay.classList.add ('intro-logo--visible');
+	await new Promise (r => setTimeout (r, 3500));
+	overlay.classList.add ('intro-logo--leaving');
+	await new Promise (r => setTimeout (r, 1500));
+	if (overlay.parentNode) overlay.parentNode.removeChild (overlay);
+	_introLogoEl = null;
+	document.body.classList.remove ('intro-active');
+	return true;
 }
 
 // ─── 세라 스프라이트 ───────────────────────────────────────────────────────────
