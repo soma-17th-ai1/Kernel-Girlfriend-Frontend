@@ -22,6 +22,7 @@ html, body {
 	height: 100%;
 	overflow: hidden;
 	overscroll-behavior: none;
+	font-family: "Gowun Batang", serif;
 }
 [data-screen="game"] {
 	overflow: hidden;
@@ -120,7 +121,7 @@ body:not(.game-active) .settings-quit-row {
 	z-index: 1;
 	text-align: center;
 	color: rgba(255, 255, 255, 0.92);
-	font-family: Georgia, "Times New Roman", serif;
+	font-family: "Gowun Batang", serif;
 	font-size: clamp(0.95rem, 1.6vw, 1.2rem);
 	font-weight: 700;
 	letter-spacing: 0.36rem;
@@ -525,7 +526,7 @@ main-screen::after {
 	padding-left: 0.6rem;
 	border-left: 0.22rem solid var(--soma-pink);
 	color: rgba(45, 36, 49, 0.62);
-	font-family: Georgia, "Times New Roman", serif;
+	font-family: "Gowun Batang", serif;
 	font-size: clamp(0.75rem, 1.4vw, 1rem);
 	font-weight: 700;
 	letter-spacing: 0.34rem;
@@ -537,7 +538,7 @@ main-screen::after {
 	display: block;
 	max-width: 100%;
 	color: #ffffff;
-	font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+	font-family: "Gowun Batang", serif;
 	font-size: clamp(2.4rem, 5.6vw, 5rem);
 	font-weight: 900;
 	line-height: 1.15;
@@ -571,7 +572,7 @@ main-menu::after {
 		0 0.9rem 2rem rgba(97, 51, 71, 0.14),
 		inset 0 0 0 1px rgba(255, 255, 255, 0.72);
 	color: #5b3546;
-	font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+	font-family: "Gowun Batang", serif;
 	font-size: 1rem;
 	font-weight: 800;
 	letter-spacing: 0;
