@@ -9,7 +9,6 @@ import {
 } from './api.js';
 import {
 	hideHUD,
-	clearSuggestions,
 	hideThinkingDots,
 	closeLogViewer,
 	isLogViewerOpen,
@@ -40,7 +39,6 @@ export function cleanupCustomUI () {
 	cancelPendingAutoSave ();
 	if (shouldAutoSaveScriptState ()) saveResumeSlot ('quit');
 	monogatari.global ('playing', false);
-	clearSuggestions ();
 	hideThinkingDots ();
 	hideHUD ();
 	if (isLogViewerOpen ()) closeLogViewer ();
@@ -229,6 +227,33 @@ export async function handleResume () {
 	} catch (err) {
 		console.error ('[resume] unhandled error:', err);
 		alert ('이어 하기 처리 중 오류가 발생했어요. 콘솔을 확인해주세요.\n\n' + (err?.message || err));
+	}
+}
+
+export async function handleDevStart () {
+	console.debug ('[dev-start] entry');
+	try {
+		cleanupCustomUI ();
+		try {
+			const res = await postSessionsCreate (true);
+			if (!res.ok) console.warn ('[dev-start] /sessions 응답 비정상:', res.status);
+		} catch (e) {
+			console.warn ('[dev-start] /sessions 호출 실패 (BE 미가용?):', e);
+		}
+		try { await monogatari.Storage.remove (SAVE_SLOT_KEY); } catch (e) {}
+		try { await monogatari.Storage.remove ('AutoSave_1'); } catch (e) {}
+		try { await monogatari.resetGame (); } catch (e) {}
+		monogatari.storage ({
+			player: { name: 'dev' },
+			sera:   { name: '이세라' }
+		});
+		monogatari.state ({ step: 0, label: 'DevStart' });
+		resetSessionBootstrapFlag ();
+		console.debug ('[dev-start] jumping to DevStart');
+		await engineStart ();
+	} catch (err) {
+		console.error ('[dev-start] unhandled error:', err);
+		alert ('[DEV] DevStart 진입 실패. 콘솔을 확인해주세요.');
 	}
 }
 

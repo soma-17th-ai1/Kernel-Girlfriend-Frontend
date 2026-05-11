@@ -6,7 +6,6 @@ import {
 	resetSeraSprite,
 	showThinkingDots,
 	hideThinkingDots,
-	clearSuggestions,
 	ensureHUD,
 	updateHUD,
 	hideHUD,
@@ -43,21 +42,17 @@ monogatari.action ('notification').notifications ({
 });
 
 monogatari.assets ('images', {
-	'sera_first': '이세라 첫등장.png'
+	'sera_first': 'sera_first.png'
 });
 
 monogatari.assets ('scenes', {
 	'blank_white':     'blank_white.svg',
 	'fade_black':      'fade_black.svg',
 	'bedroom_dawn':    'bedroom_dawn.svg',
-	'apartment_door':  'apartment_door.svg',
 	'train_interior':  'metro.png',
 	'posttower_lobby': 'center_1floor.png',
-	'elevator_panel':  'elevator_panel.svg',
 	'center_hall':     'entrance.png',
-	's1_room':         'entrance.png',
-
-	// === SceneId 기반 플레이스홀더 배경 (§1.4.2) ===
+	's1_room':         's1_room.png',
 	'scene_project_plan_evaluation': 'scene_project_plan_evaluation.svg',
 	'scene_launch_ceremony':         'scene_launch_ceremony.svg',
 	'scene_mid_evaluation':          'scene_mid_evaluation.svg',
@@ -142,7 +137,6 @@ monogatari.script ({
 			}
 		},
 
-		// === 씬 2: 아침 기상 ===
 		'show scene bedroom_dawn with fadeIn',
 		'4월 13일, 월요일. 화창한 아침.',
 		'또로로롱~ 오니쨩~! 일어날 시간이에요!!',
@@ -153,9 +147,6 @@ monogatari.script ({
 		'저벅… 저벅… 툭. 샤아아아아—',
 		'…툭. 위이이이잉… 딸깍. 툭.',
 		'p 하아… 이제야 좀 상쾌하네. 오늘은 처음 센터에 가는 날이니까 빨리 준비해야지.',
-
-		// === 씬 3: 출근길 ===
-		'show scene apartment_door with fadeIn',
 		'철컥— 현관문이 닫힌다.',
 
 		'show scene train_interior with fadeIn',
@@ -163,16 +154,11 @@ monogatari.script ({
 		'p 이건 탈 때마다 왜 이리 시끄러워…',
 		'끼이이익… 덜컹… 슈우우우욱.',
 
-		// === 씬 4: 포스트타워 진입 ===
 		'show scene posttower_lobby with fadeIn',
 		'저벅… 저벅…',
 		'p 오, 여기가 소마 건물이구나. 7층이었지, 아마?',
+		'건물로 들어간다.',
 
-		'show scene elevator_panel with fadeIn',
-		'7층 버튼을 누른다.',
-		'띵— 문이 열린다.',
-
-		// === 씬 5: 7층 센터 홀 ===
 		'show scene center_hall with fadeIn',
 		'p 오오! 이곳이 센터구나. 안이 생각보다 훨씬 깔끔한걸?',
 		'운 좋게 소프트웨어 마에스트로에 합격한 나는, 워크숍이 끝나고 처음으로 센터에 발을 들였다.',
@@ -184,7 +170,6 @@ monogatari.script ({
 		'p 이야, 벌써 서로 안면을 텄구나. 나도 워크숍 때 좀 잘할걸 그랬네…',
 		'p 아니야, 지금도 늦지 않았어. 열심히 네트워킹하자!',
 
-		// === 씬 6: S1 룸 첫 조우 ===
 		'show scene s1_room with fadeIn',
 		'— S1 룸 —',
 		'p 아, 여기가 그곳이구나! 내가 면접 봤던 곳… 그땐 좁아 보였는데, 벽을 치우니까 엄청 넓네.',
@@ -200,9 +185,7 @@ monogatari.script ({
 		'jump SCENE_FIRST_MEET'
 	],
 
-	// === 소마 일정 씬 (§1.4.2 SceneId) ===
 	// 구조: [<프롤로그>, 'jump LLMChatInit', <에필로그>, gotoNextScene]
-
 	'SCENE_FIRST_MEET': [
 		'show character y calm with fadeIn',
 		'p 그때 워크숍 때 봤던 사람이잖아…? 다시 봐도 정말 눈에 띄네.',
@@ -326,6 +309,13 @@ monogatari.script ({
 		gotoNextScene
 	],
 
+	// 개발용 LLMChatInit 진입 씬
+	'DevStart' : [
+		'show scene s1_room',
+		'show character y calm',
+		'jump LLMChatInit'
+	],
+
 	// 씬 전환 디스패처 — LLMChat Conditional 의 'transition' 분기에서 진입.
 	'_TransitionDispatch': [
 		function () {
@@ -375,7 +365,6 @@ monogatari.script ({
 				if (llmStorage.emotion) updateSeraSprite (llmStorage.emotion);
 				this.storage ({ boot: Object.assign ({}, boot, { mode: boot.mode + '-played' }) });
 			}
-			clearSuggestions ();
 
 			const prevLLM = this.storage ('llm') || {};
 			this.storage ({
@@ -429,7 +418,6 @@ monogatari.script ({
 						body: JSON.stringify ({ message: prompt })
 					});
 
-					clearSuggestions ();
 					return true;
 				},
 				'Revert': function () {
@@ -526,7 +514,6 @@ monogatari.script ({
 
 	'LLMEnd': [
 		async function () {
-			clearSuggestions ();
 			hideThinkingDots ();
 			hideHUD ();
 

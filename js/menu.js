@@ -1,7 +1,7 @@
 import { monogatari } from './engine.js';
 import { fetchSessionMe } from './api.js';
 import { hasLocalAutoSave } from './save.js';
-import { handleNewGame, handleResume, handleSomaQuit } from './game-flow.js';
+import { handleNewGame, handleResume, handleSomaQuit, handleDevStart } from './game-flow.js';
 
 monogatari.registerListener ('soma-new', {
 	callback: function () {
@@ -32,7 +32,7 @@ class SomaMainMenu extends MainMenu {
 		return `
 			<div data-ui="main-brand" aria-hidden="true">
 				<span data-ui="main-kicker">SOMA x First Love</span>
-                <strong data-ui="main-title">커널을 좋아하는 옆자리의 그녀</strong>
+                <strong data-ui="main-title">커널을 좋아하는<br>옆자리의 그녀</strong>
 			</div>
 			<div data-content="wrapper">
                 <button type="button" data-action="soma-resume" data-soma-button="resume" hidden>이어 하기</button>
@@ -77,6 +77,15 @@ class SomaSettingsScreen extends SettingsScreen {
 }
 SomaSettingsScreen.tag = 'settings-screen';
 monogatari.registerComponent (SomaSettingsScreen);
+
+// 개발용 단축키: 메인 화면에서 Ctrl+Shift+D → LLMChatInit 즉시 진입
+document.addEventListener ('keydown', function (e) {
+	if (!e.ctrlKey || !e.shiftKey || e.key !== 'D') return;
+	if (document.body.classList.contains ('game-active')) return;
+	e.preventDefault ();
+	console.debug ('[dev-key] Ctrl+Shift+D → handleDevStart()');
+	handleDevStart ();
+});
 
 export function refreshSomaMainMenu () {
 	document.querySelectorAll ('main-menu').forEach (el => {
