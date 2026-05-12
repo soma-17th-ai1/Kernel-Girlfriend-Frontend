@@ -417,6 +417,28 @@ text-input.llm-input button:hover {
 	transition: opacity 1.2s ease;
 }
 
+/* 엔딩 대사가 끝난 뒤 엔딩 이미지를 풀스크린으로 보여주는 동안 텍스트박스를 숨김.
+ * waitForClickHold() 가 부착, 클릭 시 해제. */
+body.ending-image-hold [data-component="text-box"],
+body.ending-image-hold [data-component="quick-menu"] {
+	visibility: hidden !important;
+}
+
+/* 엔딩 일러스트는 cover 로 잘리지 않고 전체가 보이도록 contain + 검정 레터박스. */
+body.ending-image-hold [data-screen="game"] [data-ui="background"] {
+	background-size: contain !important;
+	background-color: #000 !important;
+}
+
+/* 엔딩 이미지 홀드 동안 클릭 한 번을 받기 위한 풀스크린 투명 오버레이. */
+.click-catcher {
+	position: fixed;
+	inset: 0;
+	z-index: 9300;
+	cursor: pointer;
+	background: transparent;
+}
+
 @media screen and (max-width: 37.5em) {
 	.llm-suggestions {
 		bottom: 4rem;

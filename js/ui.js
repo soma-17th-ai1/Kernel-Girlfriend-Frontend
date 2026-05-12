@@ -276,6 +276,24 @@ export function showEndCredits (ending, playerName) {
 	});
 }
 
+// ─── 클릭 한번 대기 (엔딩 이미지 홀드용) ─────────────────────────────────────
+// 풀스크린 투명 오버레이를 띄워 클릭 한 번을 잡고 promise를 resolve.
+// `body.ending-image-hold` 클래스도 함께 부착해 텍스트박스를 숨긴다.
+export function waitForClickHold () {
+	return new Promise ((resolve) => {
+		document.body.classList.add ('ending-image-hold');
+		const overlay = document.createElement ('div');
+		overlay.className = 'click-catcher';
+		const finish = () => {
+			document.body.classList.remove ('ending-image-hold');
+			if (overlay.parentNode) overlay.parentNode.removeChild (overlay);
+			resolve ();
+		};
+		overlay.addEventListener ('click', finish, { once: true });
+		document.body.appendChild (overlay);
+	});
+}
+
 // ─── 모달 (confirm) ─────────────────────────────────────────────────────────
 
 function _confirmModal ({ title, body, ok = 'OK', cancel = 'Cancel' }) {

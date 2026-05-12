@@ -87,6 +87,27 @@ document.addEventListener ('keydown', function (e) {
 	handleDevStart ();
 });
 
+// 인게임 확인용 단축키: Ctrl+Y → 현재 호감도에 맞는 엔딩으로 즉시 점프
+document.addEventListener ('keydown', function (e) {
+	if (!e.ctrlKey || e.shiftKey || e.altKey || (e.key !== 'y' && e.key !== 'Y')) return;
+	if (!document.body.classList.contains ('game-active')) return;
+	e.preventDefault ();
+	const game = monogatari.storage ('game') || {};
+	const aff = typeof game.affinity === 'number' ? game.affinity : 0;
+	let sceneId;
+	if      (aff <= -100) sceneId = 'SCENE_ENDING_INSTANT_BAD';
+	else if (aff <= -30)  sceneId = 'SCENE_ENDING_BAD';
+	else if (aff <= 0)    sceneId = 'SCENE_ENDING_NORMAL_NO_CONTACT';
+	else if (aff <= 29)   sceneId = 'SCENE_ENDING_NORMAL_CONTACT';
+	else if (aff <= 99)   sceneId = 'SCENE_ENDING_HAPPY';
+	else                  sceneId = 'SCENE_ENDING_MARRIAGE';
+	console.debug ('[dev-key] Ctrl+Y → ' + sceneId + ' (affinity=' + aff + ')');
+	monogatari.storage ({ game: Object.assign ({}, game, { current_scene_id: sceneId }) });
+	monogatari.state ({ label: 'Ending', step: -1 });
+	try { monogatari.proceed ({ userInitiated: false, skip: false, autoPlay: false }); }
+	catch (err) { console.warn ('[dev-key] proceed 실패:', err); }
+});
+
 export function refreshSomaMainMenu () {
 	document.querySelectorAll ('main-menu').forEach (el => {
 		if (typeof el._refreshSomaMenu === 'function') el._refreshSomaMenu ();

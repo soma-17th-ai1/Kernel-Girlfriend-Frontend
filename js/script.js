@@ -14,7 +14,8 @@ import {
 	clearDialogLogDom,
 	ensureLogButton,
 	typewriteAndAwait,
-	showEndCredits
+	showEndCredits,
+	waitForClickHold
 } from './ui.js';
 import { startSseStream, playChatTypewriter } from './chat-stream.js';
 import { bootstrapSessionOnce, fetchEndingContent } from './api.js';
@@ -60,12 +61,14 @@ monogatari.assets ('scenes', {
 	'scene_deep_dev':                'scene_deep_dev.svg',
 	'scene_final_evaluation':        'scene_final_evaluation.svg',
 	'scene_graduation_busan':        'scene_graduation_busan.svg',
-	'scene_ending_instant_bad':       'scene_ending_instant_bad.svg',
-	'scene_ending_bad':               'scene_ending_bad.svg',
-	'scene_ending_normal_no_contact': 'scene_ending_normal_no_contact.svg',
-	'scene_ending_normal_contact':    'scene_ending_normal_contact.svg',
-	'scene_ending_happy':             'scene_ending_happy.svg',
-	'scene_ending_marriage':          'scene_ending_marriage.svg'
+	'scene_beach_gwangalli':         'gwangalli.png',
+	'scene_ending_instant_bad':       'worst_bad_ending.png',
+	'scene_ending_bad':               'bad_ending.png',
+	'scene_ending_normal_no_contact': 'normal1.png',
+	'scene_ending_normal_contact':    'normal2.png',
+	'scene_ending_happy':             'happy.png',
+	'scene_ending_marriage_confession': 'confession.png',
+	'scene_ending_marriage_wedding':    'marry.png'
 });
 
 monogatari.characters ({
@@ -510,17 +513,17 @@ monogatari.script ({
 		}
 	],
 
-	// 모든 엔딩의 진입점 — HUD 숨김, 배경 전환 후 해당 엔딩 씬으로 점프
+	// 모든 엔딩의 진입점 — HUD 숨김 후 배경 전환하여 해당 엔딩 씬으로 점프.
+	// 호감도 30+ 의 두 해피엔딩(HAPPY/MARRIAGE)은 광안리 바닷가에서, 그 외는 수료식 배경에서 대사 진행.
 	'Ending': [
 		async function () {
 			hideThinkingDots ();
 			hideHUD ();
 			const game = this.storage ('game') || {};
 			const sceneId = game.current_scene_id || '';
-			const bgKey = SCENE_BG_KEY[sceneId];
-			if (bgKey) {
-				try { await monogatari.run ('show scene ' + bgKey + ' with fadeIn', false); } catch (e) {}
-			}
+			const isHappy = (sceneId === 'SCENE_ENDING_HAPPY' || sceneId === 'SCENE_ENDING_MARRIAGE');
+			const introBg = isHappy ? 'scene_beach_gwangalli' : 'scene_graduation_busan';
+			try { await monogatari.run ('show scene ' + introBg + ' with fadeIn', false); } catch (e) {}
 			const label = (sceneId.startsWith('SCENE_') ? sceneId.slice(6) : 'ENDING_BAD');
 			monogatari.state ({ label, step: -1 });
 			return true;
@@ -539,7 +542,7 @@ monogatari.script ({
 		'어떤 말도 그녀의 발걸음을 붙잡지 못했다.',
 		'문이 닫혔다. 그게 전부였다.',
 		'우리의 이야기는, 그렇게 끝났다.',
-		'jump EndCredits'
+		'jump _EndingImageHold'
 	],
 
 	// 일반 배드엔딩 — 호감도 ≤ -30
@@ -553,7 +556,7 @@ monogatari.script ({
 		'그 후로 연락은 없었다. 서로의 번호가 연락처에 남아 있었지만, 아무도 먼저 전화하지 않았다.',
 		'어느 날 우연히 그녀의 SNS를 검색했는데, 차단되어 있었다.',
 		'그제야 실감이 났다. 우리 사이는, 정말로 끝난 거라고.',
-		'jump EndCredits'
+		'jump _EndingImageHold'
 	],
 
 	// 노멀엔딩 1 — 연락 없음 (-29 ≤ 호감도 ≤ 0)
@@ -567,7 +570,7 @@ monogatari.script ({
 		'서로의 번호는 알고 있었지만, 굳이 먼저 연락할 이유는 없었다.',
 		'그녀와의 1년. 좋은 팀원이었고, 함께 만든 것도 있었다.',
 		'그냥, 그게 전부였다.',
-		'jump EndCredits'
+		'jump _EndingImageHold'
 	],
 
 	// 노멀엔딩 2 — 가끔 연락 (1 ≤ 호감도 ≤ 29)
@@ -583,20 +586,18 @@ monogatari.script ({
 		'그 후로 우리는 가끔 안부를 전했다. 명절 연락, 취업 소식, 새 프로젝트 이야기…',
 		'특별하지는 않았지만, 잊지 않는 사이.',
 		'그것도 충분히 소중한 인연이었다.',
-		'jump EndCredits'
+		'jump _EndingImageHold'
 	],
 
 	// 해피엔딩 — 30 ≤ 호감도 ≤ 99
 	'ENDING_HAPPY': [
-		'show character y happy with fadeIn',
+		'show character y shy with fadeIn',
 		'수료식이 끝난 저녁, 광안리 바닷가.',
 		'파도 소리가 두 사람 사이로 조용히 흘렀다.',
 		'y 있잖아요, {{player.name}}씨…',
 		'p 응?',
-		'show character y shy',
 		'y 이거 끝나고도… 자주 볼 수 있을까요?',
 		'p 물론이지. 왜, 보고 싶어?',
-		'show character y happy',
 		'y 조금… 많이.',
 		'p 하, 나도.',
 		'파도 소리가 두 사람의 웃음 속에 섞였다.',
@@ -604,29 +605,57 @@ monogatari.script ({
 		'그날 이후로도 우리는 계속 만났다. 주말마다, 때로는 평일에도.',
 		'사람들은 물었다. 연인이냐고.',
 		'우리는 대답하지 않았다. 그냥, 이대로가 충분히 좋았으니까.',
-		'jump EndCredits'
+		'jump _EndingImageHold'
 	],
 
 	// 결혼 해피엔딩 — 호감도 ≥ 100
+	// 흐름: 광안리 바닷가에서 대사(스프라이트 포함) → 고백 일러(클릭 대기) →
+	//       검은 화면으로 페이드, 2년 후 narration → 결혼식 일러(클릭 대기) → 크레딧.
 	'ENDING_MARRIAGE': [
-		'show character y excited with fadeIn',
+		'show character y shy with fadeIn',
 		'수료식 날 저녁, 광안리 바닷가의 노을 아래.',
 		'y {{player.name}}씨, 저 드릴 말씀이 있어요.',
 		'p 응? 갑자기?',
-		'show character y shy',
 		'y 저는요… 이 1년 동안, {{player.name}}씨가 제일 좋았어요. 그 어느 것보다.',
 		'p 나도야.',
-		'show character y excited',
 		'y 그럼 앞으로도 같이 있어줄래요? 오래오래.',
 		'p 같이 있는 거야? 아니면…',
-		'show character y shy',
 		'y 같이 있는 거예요. 계속, 영원히.',
 		'p 응. 같이 있자.',
 		'노을이 두 사람을 물들였다. 파도 소리도, 갈매기 소리도, 세상의 모든 것이 멀어진 것 같았다.',
 		'hide character y with fadeOut',
+		// 1번째 일러 — 고백 장면
+		async function () {
+			try { await monogatari.run ('show scene scene_ending_marriage_confession with fadeIn', false); } catch (e) {}
+			await waitForClickHold ();
+			return true;
+		},
+		// 검은 화면으로 페이드 후 시간 경과 narration
+		'show scene fade_black with fadeIn',
 		'그로부터 2년 뒤, 가을.',
 		'그녀는 드레스를 입고 복도 끝에 서 있었다.',
 		'웨딩마치가 울렸다.',
+		// 2번째 일러 — 결혼식 장면
+		async function () {
+			try { await monogatari.run ('show scene scene_ending_marriage_wedding with fadeIn', false); } catch (e) {}
+			await waitForClickHold ();
+			return true;
+		},
+		'jump EndCredits'
+	],
+
+	// 엔딩 대사 종료 후 — 각 엔딩 이미지로 페이드, 클릭 한 번 대기 후 크레딧으로 진행
+	'_EndingImageHold': [
+		async function () {
+			const game = this.storage ('game') || {};
+			const sceneId = game.current_scene_id || '';
+			const bgKey = SCENE_BG_KEY[sceneId];
+			if (bgKey) {
+				try { await monogatari.run ('show scene ' + bgKey + ' with fadeIn', false); } catch (e) {}
+			}
+			await waitForClickHold ();
+			return true;
+		},
 		'jump EndCredits'
 	],
 
