@@ -23,6 +23,7 @@ import { bootstrapSessionOnce, fetchEndingContent } from './api.js';
 import { saveEndingClear } from './ending-dex.js';
 import { setGameActive, chatStreamState, finalizeEndingCleanup } from './game-flow.js';
 import { API_BASE, escapeDialogText, ENDING_BG_FADE_MS, ENDING_BG_FADE_OUT_MS, SCENE_BG_KEY } from './constants.js';
+import { playBgm, stopBgm } from './audio.js';
 
 // ─── Monogatari 등록 ───────────────────────────────────────────────────────────
 
@@ -57,12 +58,12 @@ monogatari.assets ('scenes', {
 	'posttower_lobby': 'center_1floor.png',
 	'center_hall':     'entrance.png',
 	's1_room':         's1_room.png',
-	'scene_project_plan_evaluation': 'scene_project_plan_evaluation.svg',
-	'scene_launch_ceremony':         'scene_launch_ceremony.svg',
-	'scene_mid_evaluation':          'scene_mid_evaluation.svg',
-	'scene_deep_dev':                'scene_deep_dev.svg',
-	'scene_final_evaluation':        'scene_final_evaluation.svg',
-	'scene_graduation_busan':        'scene_graduation_busan.svg',
+	'scene_project_plan_evaluation': 'scene_project_plan_evaluation.png',
+	'scene_launch_ceremony':         'scene_launch_ceremony.png',
+	'scene_mid_evaluation':          'scene_project_plan_evaluation.png',
+	'scene_deep_dev':                'scene_deep_dev.png',
+	'scene_final_evaluation':        'scene_project_plan_evaluation.png',
+	'scene_graduation_busan':        'scene_graduation_busan.png',
 	'scene_beach_gwangalli':         'gwangalli.png',
 	'scene_ending_instant_bad':       'worst_bad_ending.png',
 	'scene_ending_bad':               'bad_ending.png',
@@ -108,6 +109,8 @@ monogatari.script ({
 		'show scene blank_white',
 		// 인트로 로고 오버레이.
 		showIntroLogo,
+		// 로고 페이드 종료 — BGM 정지.
+		function () { stopBgm (); return true; },
 		// 인트로 끝나면 검은 배경으로 페이드.
 		'show scene fade_black with fadeIn',
 		'jump NewGame'
@@ -523,8 +526,12 @@ monogatari.script ({
 			const game = this.storage ('game') || {};
 			const sceneId = game.current_scene_id || '';
 			const isHappy = (sceneId === 'SCENE_ENDING_HAPPY' || sceneId === 'SCENE_ENDING_MARRIAGE');
-			const introBg = isHappy ? 'scene_beach_gwangalli' : 'scene_graduation_busan';
-			try { await monogatari.run ('show scene ' + introBg + ' with fadeIn', false); } catch (e) {}
+			const isInstantBad = (sceneId === 'SCENE_ENDING_INSTANT_BAD');
+			if (isHappy) playBgm ('gwanganli');
+			if (!isInstantBad) {
+				const introBg = isHappy ? 'scene_beach_gwangalli' : 'scene_graduation_busan';
+				try { await monogatari.run ('show scene ' + introBg + ' with fadeIn', false); } catch (e) {}
+			}
 			const label = (sceneId.startsWith('SCENE_') ? sceneId.slice(6) : 'ENDING_BAD');
 			monogatari.state ({ label, step: -1 });
 			return true;
@@ -628,10 +635,12 @@ monogatari.script ({
 		'show scene fade_black with fadeIn',
 		// 1번째 일러 — 고백 장면
 		() => showEndingImage ('scene_ending_marriage_confession', ENDING_BG_FADE_MS, ENDING_BG_FADE_OUT_MS),
+		function () { stopBgm ('gwanganli'); return true; },
 		// 시간 경과 narration
 		'그로부터 2년 뒤, 가을.',
 		'그녀는 드레스를 입고 복도 끝에 서 있었다.',
 		'웨딩마치가 울렸다.',
+		function () { playBgm ('marr'); return true; },
 		// 2번째 일러 — 결혼식 장면
 		() => showEndingImage ('scene_ending_marriage_wedding', ENDING_BG_FADE_MS, ENDING_BG_FADE_OUT_MS),
 		'jump EndCredits'

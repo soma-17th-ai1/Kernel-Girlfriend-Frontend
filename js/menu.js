@@ -6,6 +6,7 @@ import { promptAffinityInput } from './ui.js';
 import { API_BASE, ENDING_META, SCENE_LABEL, EVENT_LABELS, escapeDialogText, sceneUrl } from './constants.js';
 import { getEndingDex } from './ending-dex.js';
 import { BADGE_MAP } from './ui.js';
+import { playMenuBgm } from './audio.js';
 
 monogatari.registerListener ('soma-new', {
 	callback: function () {
@@ -50,6 +51,7 @@ class SomaMainMenu extends MainMenu {
 
 	async didMount () {
 		console.debug ('[soma-menu] didMount — registering refresh');
+		playMenuBgm ();
 		await this._refreshSomaMenu ();
 	}
 
