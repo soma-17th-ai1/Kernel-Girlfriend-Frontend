@@ -1,7 +1,7 @@
 import { monogatari } from './engine.js';
 import { fetchSessionMe } from './api.js';
 import { hasLocalAutoSave } from './save.js';
-import { handleNewGame, handleResume, handleSomaQuit, handleDevStart } from './game-flow.js';
+import { handleNewGame, handleResume, handleDevStart } from './game-flow.js';
 import { promptAffinityInput } from './ui.js';
 import { API_BASE, ENDING_META, SCENE_LABEL, EVENT_LABELS, escapeDialogText, sceneUrl } from './constants.js';
 import { getEndingDex } from './ending-dex.js';
@@ -18,13 +18,6 @@ monogatari.registerListener ('soma-resume', {
 	callback: function () {
 		console.debug ('[soma-resume] click → handleResume()');
 		handleResume ();
-		return true;
-	}
-});
-monogatari.registerListener ('soma-quit', {
-	callback: function () {
-		console.debug ('[soma-quit] click → handleSomaQuit()');
-		handleSomaQuit ();
 		return true;
 	}
 });
@@ -67,18 +60,6 @@ class SomaMainMenu extends MainMenu {
 SomaMainMenu.tag = 'main-menu';
 monogatari.registerComponent (SomaMainMenu);
 
-const SettingsScreen = monogatari.component ('settings-screen');
-class SomaSettingsScreen extends SettingsScreen {
-	render () {
-		return `
-			<div class="row row--center padded settings-quit-row">
-				<button type="button" data-action="soma-quit" class="settings-quit-btn">메인 메뉴로</button>
-			</div>
-		`;
-	}
-}
-SomaSettingsScreen.tag = 'settings-screen';
-monogatari.registerComponent (SomaSettingsScreen);
 
 // 개발용 단축키: 메인 화면에서 Ctrl+Shift+D → LLMChatInit 즉시 진입
 document.addEventListener ('keydown', function (e) {

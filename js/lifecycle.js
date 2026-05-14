@@ -1,5 +1,5 @@
 import { installScriptAutoSaveHook } from './save.js';
-import { cleanupCustomUI } from './game-flow.js';
+import { cleanupCustomUI, handleSomaQuit } from './game-flow.js';
 import { refreshSomaMainMenu } from './menu.js';
 import { bgm } from './audio.js';
 import { isEndingUnlocked } from './ending-dex.js';
@@ -31,6 +31,20 @@ function _installLifecycleHooks () {
 			setTimeout (_syncDistractionFree, 0);
 		}
 	});
+
+	// ESC 키 → 세팅이 아닌 confirmQuit 모달. 캡처 페이즈로 Monogatari 보다 먼저 처리.
+	document.addEventListener ('keydown', (e) => {
+		if (e.key !== 'Escape') return;
+		if (!document.body.classList.contains ('game-active')) return;
+		e.preventDefault ();
+		e.stopImmediatePropagation ();
+		const modal = document.querySelector ('.confirm-modal--visible');
+		if (modal) {
+			modal.querySelector ('.confirm-modal__btn--cancel')?.click ();
+			return;
+		}
+		handleSomaQuit ();
+	}, true);
 
 	if (typeof MutationObserver === 'undefined') return;
 	let _mainScreenWasVisible = false;
@@ -68,6 +82,25 @@ function _installLifecycleHooks () {
 		});
 		focusedObs.observe (mainScreenEl, { attributes: true, attributeFilter: ['class'] });
 	}
+}
+
+export function ensureMainBtn () {
+	if (document.getElementById ('soma-main-btn')) return;
+	const quickMenu = document.querySelector ('quick-menu');
+	if (!quickMenu) return;
+	const btn = document.createElement ('button');
+	btn.id = 'soma-main-btn';
+	btn.type = 'button';
+	btn.setAttribute ('aria-label', '메인 메뉴로');
+	btn.innerHTML = '<span class="fas fa-home"></span><span data-string>Main</span>';
+	btn.addEventListener ('click', (e) => {
+		e.preventDefault ();
+		e.stopPropagation ();
+		handleSomaQuit ();
+	});
+	const hideBtn = quickMenu.querySelector ('[data-action="distraction-free"]');
+	if (hideBtn) hideBtn.insertAdjacentElement ('afterend', btn);
+	else quickMenu.appendChild (btn);
 }
 
 if (document.readyState === 'loading') {
